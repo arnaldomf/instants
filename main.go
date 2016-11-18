@@ -43,7 +43,7 @@ func authURL(secret Secret) string {
 		secret.RedirectURI, scope)
 }
 
-func getCode(authurl string) (string, error) {
+func getCodeFromConsole(authurl string) (string, error) {
 	fmt.Printf("Please, insert this URL in your browser:\n\t%s\n", authurl)
 	fmt.Println("Paste the code")
 	reader := bufio.NewReader(os.Stdin)
@@ -69,8 +69,22 @@ func readCodeFromFile() (string, bool) {
 
 func getCodeFromInsta(s Secret) (string, error) {
 	auth := authURL(s)
-	code, err := getCode(auth)
+	code, err := getCodeFromConsole(auth)
 	if err != nil {
+		return "", err
+	}
+	return code, nil
+}
+
+func getCode(s Secret) (string, error) {
+	var err error
+	code, ok := readCodeFromFile()
+	if !ok {
+		if code, err = getCodeFromInsta(s); err != nil {
+			return "", err
+		}
+	}
+	if err = saveCode(code); err != nil {
 		return "", err
 	}
 	return code, nil
@@ -99,13 +113,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("[FATAL] instants - %v", err)
 	}
-	code, ok := readCodeFromFile()
-	if !ok {
-		if code, err = getCodeFromInsta(s); err != nil {
-			log.Fatalf("[FATAL] instants - %v", err)
-		}
-	}
-	if err := saveCode(code); err != nil {
+	code, err := getCode(s)
+	if err != nil {
 		log.Fatalf("[FATAL] instants - %v", err)
 	}
 	fmt.Println(code)
